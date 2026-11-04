@@ -1,0 +1,6 @@
+# Hanya izinkan request POST untuk endpoint proses.
+<IfModule mod_rewrite.c>
+    RewriteEngine On
+    RewriteCond %{REQUEST_METHOD} !^POST$ [NC]
+    RewriteRule ^ - [R=405,L]
+</IfModule>

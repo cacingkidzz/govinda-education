@@ -1,0 +1,48 @@
+# ---------------------------------------------------------------------
+# Konfigurasi lokal & kredensial (JANGAN pernah di-commit)
+# ---------------------------------------------------------------------
+/config/config.local.php
+/config/config.local.php.bak
+*.local.php
+
+# ---------------------------------------------------------------------
+# Data runtime: log & backup database (berisi data nyata)
+# ---------------------------------------------------------------------
+/storage/logs/*
+!/storage/logs/index.html
+/storage/backups/*
+!/storage/backups/index.html
+
+# ---------------------------------------------------------------------
+# Unggahan pengguna: foto siswa/guru, logo bimbel, bukti pembayaran
+# (data pribadi — jangan dipublikasikan)
+# ---------------------------------------------------------------------
+/uploads/**
+!/uploads/.htaccess
+!/uploads/**/
+!/uploads/**/index.html
+
+# ---------------------------------------------------------------------
+# Berkas OS / editor
+# ---------------------------------------------------------------------
+Thumbs.db
+Desktop.ini
+.DS_Store
+*.swp
+*.swo
+.idea/
+.vscode/
+*.code-workspace
+
+# ---------------------------------------------------------------------
+# Arsip & file sementara
+# ---------------------------------------------------------------------
+*.zip
+*.rar
+*.7z
+*.tmp
+*.bak
+
+# Berkas sementara pengujian HTTP
+/tests/.cookie-*
+/tests/*.log

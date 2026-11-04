@@ -1,0 +1,20 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="Govinda Education">
+  <defs>
+    <linearGradient id="geBg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#14867c"/>
+      <stop offset="0.55" stop-color="#0f5f5a"/>
+      <stop offset="1" stop-color="#0b2532"/>
+    </linearGradient>
+    <linearGradient id="geGold" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#ffd97a"/>
+      <stop offset="1" stop-color="#e6ab2e"/>
+    </linearGradient>
+  </defs>
+  <rect x="1" y="1" width="62" height="62" rx="16" fill="url(#geBg)"/>
+  <circle cx="46" cy="18" r="6.5" fill="url(#geGold)"/>
+  <path d="M13.5 38.2c6.2-4.1 12.3-4.1 18.5 0v12.2c-6.2-4.1-12.3-4.1-18.5 0V38.2z" fill="#ffffff" opacity="0.94"/>
+  <path d="M50.5 38.2c-6.2-4.1-12.3-4.1-18.5 0v12.2c6.2-4.1 12.3-4.1 18.5 0V38.2z" fill="#ffffff" opacity="0.78"/>
+  <path d="M32 39.1v11.3" stroke="#0b2532" stroke-width="1.6" stroke-linecap="round" opacity="0.55"/>
+  <circle cx="21" cy="22" r="2" fill="#f2c14e" opacity="0.9"/>
+  <path d="M17 27.5h8" stroke="#f2c14e" stroke-width="2" stroke-linecap="round" opacity="0.75"/>
+</svg>

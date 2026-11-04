@@ -1,0 +1,75 @@
+# =====================================================================
+# Govinda Education — Konfigurasi Apache
+# =====================================================================
+
+<IfModule mod_autoindex.c>
+    Options -Indexes
+</IfModule>
+
+DirectoryIndex index.php index.html
+
+AddDefaultCharset UTF-8
+
+<IfModule mod_negotiation.c>
+    Options -MultiViews
+</IfModule>
+
+# ---------------------------------------------------------------------
+# Blokir akses langsung ke file sensitif
+# ---------------------------------------------------------------------
+<FilesMatch "(^\.|config\.local\.php$|composer\.(json|lock)$|\.(sql|log|ini|md|env|bak|sh|yml|yaml)$)">
+    <IfModule mod_authz_core.c>
+        Require all denied
+    </IfModule>
+    <IfModule !mod_authz_core.c>
+        Order allow,deny
+        Deny from all
+    </IfModule>
+</FilesMatch>
+
+# ---------------------------------------------------------------------
+# Blokir akses langsung ke folder internal aplikasi & folder pengujian
+# ---------------------------------------------------------------------
+<IfModule mod_rewrite.c>
+    RewriteEngine On
+    RewriteRule ^(?:config|includes|classes|database|storage|tests)(?:/|$) - [F,L,NC]
+    RewriteRule ^(?:AGENTS\.md|README\.md|DEPLOY-CPANEL\.md)$ - [F,L,NC]
+</IfModule>
+
+# ---------------------------------------------------------------------
+# Opsional: paksa HTTPS setelah SSL/AutoSSL aktif.
+# Jangan diaktifkan sebelum sertifikat SSL terpasang agar tidak redirect loop.
+# ---------------------------------------------------------------------
+# <IfModule mod_rewrite.c>
+#     RewriteCond %{HTTPS} !=on
+#     RewriteCond %{HTTP:X-Forwarded-Proto} !https
+#     RewriteRule ^ https://%{HTTP_HOST}%{REQUEST_URI} [R=301,L]
+# </IfModule>
+
+# ---------------------------------------------------------------------
+# Header keamanan
+# ---------------------------------------------------------------------
+<IfModule mod_headers.c>
+    Header always set X-Content-Type-Options "nosniff"
+    Header always set X-Frame-Options "SAMEORIGIN"
+    Header always set Referrer-Policy "strict-origin-when-cross-origin"
+    Header always set X-Permitted-Cross-Domain-Policies "none"
+    Header always set Permissions-Policy "geolocation=(), microphone=(), camera=()"
+</IfModule>
+
+# ---------------------------------------------------------------------
+# Tolak metode TRACE
+# ---------------------------------------------------------------------
+<IfModule mod_rewrite.c>
+    RewriteCond %{REQUEST_METHOD} ^TRACE [NC]
+    RewriteRule ^ - [F,L]
+</IfModule>
+
+# ---------------------------------------------------------------------
+# Batas ukuran upload PHP
+# Di cPanel, atur lewat "MultiPHP INI Editor" atau file .user.ini,
+# bukan php_value di .htaccess (berisiko 500 pada PHP-FPM/LiteSpeed).
+# Nilai yang disarankan: upload_max_filesize=2M, post_max_size=8M.
+# ---------------------------------------------------------------------
+
+ServerSignature Off

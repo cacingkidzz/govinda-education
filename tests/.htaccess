@@ -1,0 +1,10 @@
+# Folder pengujian tidak boleh diakses dari web.
+# Pengujian membuat dan menghapus data, jadi hanya boleh dijalankan lewat CLI.
+
+<IfModule mod_authz_core.c>
+    Require all denied
+</IfModule>
+<IfModule !mod_authz_core.c>
+    Order allow,deny
+    Deny from all
+</IfModule>
