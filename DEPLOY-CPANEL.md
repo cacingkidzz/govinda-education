@@ -119,8 +119,8 @@ disimpan di `config/config.local.php` yang diblokir dari akses web.
    ```php
    define('DB_HOST', 'localhost');
    define('DB_PORT', 3306);
-   define('DB_NAME', 'ppdf2433_sidoel');
-   define('DB_USER', 'ppdf2433_sidoel');
+   define('DB_NAME', 'cpuser_govinda');
+   define('DB_USER', 'cpuser_govinda');
    define('DB_PASS', 'password-database-cpanel-anda');
    ```
 4. Simpan sebagai **UTF-8 tanpa BOM**.

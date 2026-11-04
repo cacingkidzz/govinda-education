@@ -8,7 +8,7 @@
  *      (di cPanel: File Manager -> config/ -> Copy, atau buat file baru).
  *   2. Isi DB_* sesuai database yang dibuat di cPanel
  *      (MySQL® Databases: nama database & user berawalan akun cPanel,
- *      mis. ppdf2433_sidoel).
+ *      mis. cpuser_govinda).
  *   3. Simpan sebagai UTF-8 tanpa BOM.
  *   4. Jangan unggah/bagikan config/config.local.php. File ini diblokir
  *      dari akses web oleh config/.htaccess dan root .htaccess.
@@ -27,9 +27,9 @@
 // ---------------------------------------------------------------------
 define('DB_HOST', 'localhost');
 define('DB_PORT', 3306);
-define('DB_NAME', 'ppdf2433_sidoel');
-define('DB_USER', 'ppdf2433_sidoel');
-define('DB_PASS', 'GANTI_PASSWORD_CPANEL');
+define('DB_NAME', 'cpuser_govinda');
+define('DB_USER', 'cpuser_govinda');
+define('DB_PASS', 'GANTI_DENGAN_PASSWORD_CPANEL');
 
 // ---------------------------------------------------------------------
 // Opsional: paksa base URL bila deteksi otomatis salah.
