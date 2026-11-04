@@ -49,7 +49,8 @@ database/  govinda_education.sql, govinda_education_cpanel.sql,
 tests/     .htaccess, stage3_test.php, stage3_http_test.php,
            stage4_test.php, stage4_http_test.php, profile_http_test.php,
            self_registration_test.php, self_registration_http_test.php,
-           expense_test.php, expense_http_test.php
+           expense_test.php, expense_http_test.php,
+           user_test.php, user_http_test.php
 pendaftaran.php  (halaman publik pendaftaran & pembaruan data siswa)
 DEPLOY-CPANEL.md  (panduan deploy hosting)
 ```
@@ -185,6 +186,18 @@ Setiap halaman admin wajib memuat `includes/bootstrap.php`, memanggil `require_l
 - Rekap Keuangan wajib menampilkan pengeluaran operasional dan saldo kas (`uang diterima - pengeluaran tercatat`) secara terpisah dari tagihan diterbitkan.
 - Perubahan pengeluaran, pembatalan, dan pencatatan dicatat di log aktivitas (`pengeluaran_tambah`, `pengeluaran_edit`, `pengeluaran_batal`).
 
+### 4.12 Pengguna & Akses
+- Modul **Manajemen Pengguna** (`admin/pengguna/`) hanya untuk **admin**; petugas mendapat 403 pada halaman maupun endpoint.
+- Role hanya `admin` dan `petugas`. Administrator dapat mengelola pengguna, profil bimbel, dan membatalkan pengeluaran.
+- Username wajib unik, huruf kecil, 3–30 karakter, diawali huruf, dan hanya boleh berisi huruf, angka, titik, garis bawah, serta tanda hubung.
+- Email opsional, harus valid dan unik bila diisi.
+- Password minimal 8 karakter (maksimal 72), wajib mengandung huruf dan angka, disimpan dengan `password_hash()`. Password tidak pernah ditampilkan kembali atau ditulis ke log.
+- Akun **tidak dihapus permanen**; status diubah aktif/nonaktif dan riwayat aktivitas tetap utuh.
+- Minimal **satu administrator aktif** harus selalu tersedia. Penonaktifan atau penurunan peran admin terakhir ditolak.
+- Pengguna tidak boleh menonaktifkan atau menurunkan peran **akunnya sendiri**.
+- Pengguna nonaktif tidak dapat login; sesi yang sedang berjalan berakhir pada pemeriksaan berikutnya.
+- Pembuatan, perubahan, atur ulang password, dan perubahan status dicatat di log aktivitas (`user_tambah`, `user_edit`, `user_password`, `user_aktif`, `user_nonaktif`).
+
 ## 5. Aturan Keamanan
 
 - Semua query memakai PDO prepared statements. Dilarang menyisipkan input ke SQL.
@@ -196,6 +209,7 @@ Setiap halaman admin wajib memuat `includes/bootstrap.php`, memanggil `require_l
 - Upload: whitelist ekstensi/MIME, batas ukuran, nama file acak, simpan di luar eksekusi PHP.
 - Modul **Profil Bimbel** hanya untuk admin; petugas tidak boleh membuka halaman maupun endpoint-nya (403).
 - Cek role di setiap halaman/endpoint. Folder `proses/` hanya menerima POST + CSRF.
+- Modul Manajemen Pengguna hanya untuk admin (halaman **dan** endpoint). Jangan menyediakan hapus permanen akun; gunakan status aktif/nonaktif, jaga minimal satu administrator aktif, dan larang pengguna menonaktifkan/menurunkan peran akun sendiri.
 - Halaman pendaftaran mandiri wajib memvalidasi token secara ketat (format hex 48 karakter), menolak siswa nonaktif, dan tidak pernah mempercayai ID siswa dari input. Ambil siswa dari token.
 - Jangan menampilkan token siswa lain, jangan menaruh token di log, dan jangan mengizinkan siswa mengubah kode/group/status/tanggal bergabung.
 - Jangan tampilkan detail error/database ke pengguna. Log ke `storage/logs/`.
@@ -256,7 +270,8 @@ Setiap halaman admin wajib memuat `includes/bootstrap.php`, memanggil `require_l
 - **Profil Bimbel:** ✅ CRUD identitas (nama, tagline, deskripsi, alamat, kontak, situs) + unggah/reset logo, diterapkan ke layout, login, dashboard, invoice, dan nota.
 - **Pendaftaran Mandiri:** ✅ halaman publik siswa baru + tautan token per siswa, pengelolaan tautan admin, kelengkapan data, audit, dan pengujian.
 - **Pengeluaran Operasional:** ✅ pencatatan biaya bimbel, nomor `OUT-YYYYMM-####`, pembatalan ber-audit khusus admin, integrasi Rekap Keuangan + CSV, dan pengujian.
-- **Tahap 7 — Pengujian:** pengujian menyeluruh, manajemen pengguna, penyempurnaan, UAT, dan kesiapan produksi. ⏳
+- **Manajemen Pengguna:** ✅ daftar akun, tambah/edit, atur ulang password, aktif/nonaktif, proteksi admin terakhir & akun sendiri, audit, dan pengujian.
+- **Tahap 7 — Pengujian:** pengujian menyeluruh, penyempurnaan, UAT, dan kesiapan produksi. ⏳
 
 ## 9. Perintah Penting
 
@@ -311,6 +326,12 @@ php tests\expense_test.php
 
 # Uji HTTP pengeluaran (halaman, hak akses, CSRF, integrasi laporan & CSV)
 php tests\expense_http_test.php
+
+# Uji aturan bisnis manajemen pengguna (validasi, hash, keunikan, status, proteksi admin)
+php tests\user_test.php
+
+# Uji HTTP manajemen pengguna (halaman, role, CSRF, pembuatan akun, reset password)
+php tests\user_http_test.php
 ```
 
 ## 10. Kredensial Awal

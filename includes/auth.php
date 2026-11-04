@@ -52,7 +52,9 @@ final class Auth
 
         $lastRegenerate = (int) ($_SESSION['_last_regenerate'] ?? 0);
         if ($lastRegenerate === 0 || (time() - $lastRegenerate) > 1800) {
-            if (session_status() === PHP_SESSION_ACTIVE) {
+            // Jangan memanggil session_regenerate_id() bila header sudah terkirim:
+            // PHP akan memunculkan warning dan ID sesi tidak berubah.
+            if (session_status() === PHP_SESSION_ACTIVE && !headers_sent()) {
                 session_regenerate_id(true);
             }
             $_SESSION['_last_regenerate'] = time();

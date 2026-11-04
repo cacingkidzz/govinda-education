@@ -198,6 +198,13 @@ $activeMenu = $activeMenu ?? '';
                 <div class="sidebar-section-label mt-3">Sistem</div>
                 <ul class="nav sidebar-menu flex-column" data-lte-toggle="treeview" data-accordion="false">
                     <li class="nav-item">
+                        <a href="<?= e(url('admin/pengguna/index.php')) ?>"
+                           class="nav-link <?= $activeMenu === 'pengguna' ? 'active' : '' ?>">
+                            <i class="nav-icon bi bi-person-badge"></i>
+                            <p>Manajemen Pengguna</p>
+                        </a>
+                    </li>
+                    <li class="nav-item">
                         <a href="<?= e(url('admin/profil/index.php')) ?>"
                            class="nav-link <?= $activeMenu === 'profil' ? 'active' : '' ?>">
                             <i class="nav-icon bi bi-building-gear"></i>

@@ -216,6 +216,20 @@ Modul **Pengeluaran** (`admin/pengeluaran/`) mencatat biaya operasional bimbel a
 
 ---
 
+## 1g. Manajemen Pengguna
+
+Modul **Manajemen Pengguna** (`admin/pengguna/`) mengelola akun yang dapat masuk ke aplikasi. Hanya **admin** yang dapat membukanya.
+
+- **Daftar akun:** nama, username, email, peran, login terakhir, dan status; filter peran/status.
+- **Tambah & edit:** nama, username unik, email opsional (unik bila diisi), peran `admin`/`petugas`, dan status aktif.
+- **Password:** minimal 8 karakter, wajib mengandung huruf dan angka, disimpan dengan `password_hash()`. Admin dapat mengatur ulang password kapan saja; password tidak pernah ditampilkan kembali atau dicatat di log.
+- **Tanpa hapus permanen:** akun hanya dinonaktifkan agar riwayat aktivitas tetap utuh. Akun nonaktif tidak dapat login.
+- **Proteksi:** minimal satu administrator aktif harus selalu ada, dan pengguna tidak dapat menonaktifkan atau menurunkan peran akunnya sendiri.
+- **Audit:** pembuatan, perubahan, atur ulang password, dan perubahan status dicatat di **Log Aktivitas** (`user_tambah`, `user_edit`, `user_password`, `user_aktif`, `user_nonaktif`).
+- **Keamanan:** halaman dan endpoint memakai `require_admin()`, seluruh POST memakai CSRF, output di-escape, dan query memakai PDO prepared statements.
+
+---
+
 ## 2. Kebutuhan Server
 
 - PHP **8.1+** (diuji pada PHP 8.2.4).
@@ -277,7 +291,7 @@ Modul **Pengeluaran** (`admin/pengeluaran/`) mencatat biaya operasional bimbel a
    | Admin | `admin` | `Admin@2026` |
    | Petugas | `petugas` | `Petugas@2026` |
 
-7. **Segera ganti password default** sebelum aplikasi dipakai. Modul manajemen pengguna akan tersedia pada tahap pengembangan berikutnya; sampai saat itu, ganti hash password langsung di database menggunakan `password_hash()`.
+7. **Segera ganti password default** sebelum aplikasi dipakai: buka **Manajemen Pengguna** sebagai admin, lalu gunakan tombol **Atur Ulang Password** pada akun `admin` dan `petugas`. Buat akun petugas baru bila perlu dan nonaktifkan akun default yang tidak dipakai.
 
 ---
 
@@ -302,7 +316,8 @@ Ringkasan:
 6. Pilih PHP **8.1+** (disarankan 8.2) dan aktifkan ekstensi
    `pdo_mysql`, `mbstring`, `fileinfo`, `openssl`.
 7. Aktifkan **HTTPS/SSL**, lalu buka komentar blok redirect HTTPS di `.htaccess`.
-8. Buka domain/subfolder, login, dan **segera ganti password default**.
+8. Buka domain/subfolder, login, lalu **segera ganti password default** lewat
+   **Manajemen Pengguna** (khusus admin).
 9. Hapus folder `tests/` dan `database/` dari server setelah import (keduanya sudah
    diblokir `.htaccess`, tetapi menghapusnya lebih aman).
 
@@ -327,7 +342,7 @@ govinda-education/
 │   ├── pengeluaran/                   # biaya operasional bimbel
 │   ├── laporan/                       # laporan + utang + cetak + CSV
 │   ├── profil/                        # identitas & logo bimbel (admin)
-│   └── pengguna/                      # tahap berikutnya
+│   └── pengguna/                      # manajemen akun admin & petugas (admin)
 ├── assets/
 │   ├── adminlte/          # CSS & JS AdminLTE 4
 │   ├── vendor/            # Bootstrap, Icons, jQuery, Chart.js, dll.
@@ -367,7 +382,9 @@ govinda-education/
 │   ├── self_registration_test.php      # uji token, validasi, kelengkapan data
 │   ├── self_registration_http_test.php # uji halaman publik & pengelolaan tautan
 │   ├── expense_test.php        # uji aturan bisnis pengeluaran
-│   └── expense_http_test.php   # uji halaman, hak akses, dan integrasi laporan
+│   ├── expense_http_test.php   # uji halaman, hak akses, dan integrasi laporan
+│   ├── user_test.php           # uji validasi, hash, keunikan, dan status pengguna
+│   └── user_http_test.php      # uji halaman, role, CSRF, dan reset password
 ├── includes/
 │   ├── bootstrap.php      # autoloader + helper + auth
 │   ├── auth.php           # Auth class + require_login/role
@@ -682,6 +699,32 @@ Kedua uji membuat data berprefix `EXPTEST-`/`EXPHTTP-` dan membersihkannya sendi
 
 ---
 
+## 8g. Pengujian Manajemen Pengguna
+
+Login sebagai **admin**, lalu:
+
+1. Buka **Sistem → Manajemen Pengguna** → **Tambah Pengguna**.
+2. Simpan akun petugas baru → muncul di daftar dengan peran **Petugas** dan status **Aktif**.
+3. Logout, lalu login dengan akun baru tersebut → berhasil masuk dashboard.
+4. Sebagai akun baru (petugas), buka `admin/pengguna/index.php` → **403**.
+5. Sebagai admin, coba tambah username yang sudah dipakai → form kembali dengan pesan "Username tersebut sudah dipakai".
+6. Isi password `abc` → ditolak dengan pesan minimal 8 karakter.
+7. Edit akun uji, ubah nama → daftar menampilkan nama baru.
+8. Buka **Atur Ulang Password** akun uji → login dengan password lama gagal, password baru berhasil.
+9. Nonaktifkan akun uji → login ditolak; aktifkan kembali → login berhasil.
+10. Coba nonaktifkan akun sendiri dan turunkan peran sendiri → ditolak.
+11. POST tanpa `_csrf` → **419**; akses `proses.php` via GET → **405**.
+12. Buka **Log Aktivitas** → tercatat `user_tambah`, `user_edit`, `user_password`, `user_nonaktif`.
+
+**Uji otomatis** (server `php -S 127.0.0.1:8080` harus berjalan):
+```powershell
+php tests\user_test.php
+php tests\user_http_test.php
+```
+Kedua uji membuat pengguna berprefix `usertest`/`userhttp` dan membersihkannya sendiri. Akun `admin` dan `petugas` tidak diubah.
+
+---
+
 ## 9. Debug
 
 Secara default aplikasi berjalan dalam mode produksi (error tidak ditampilkan). Untuk pengembangan lokal:
@@ -710,9 +753,10 @@ GOVINDA_DB_USER, GOVINDA_DB_PASS, GOVINDA_BASE_URL
 - **Profil Bimbel:** ✅ CRUD identitas (nama, tagline, deskripsi, alamat, kontak, situs) + unggah/reset logo, diterapkan ke layout, login, dashboard, invoice, dan nota.
 - **Pendaftaran Mandiri:** ✅ halaman publik untuk siswa baru dan tautan token per siswa, pengelolaan tautan di admin, kelengkapan data, audit, dan pengujian.
 - **Pengeluaran Operasional:** ✅ pencatatan biaya bimbel, nomor otomatis, pembatalan ber-audit, hak akses admin/petugas, integrasi Rekap Keuangan + CSV, dan pengujian.
+- **Manajemen Pengguna:** ✅ daftar akun, tambah/edit, atur ulang password, aktif/nonaktif, proteksi admin terakhir & akun sendiri, audit, dan pengujian.
 - **Tahap 5:** ✅ pembayaran wajib lunas, transaksi + row lock, kwitansi (diselesaikan bersama Tahap 4).
 - **Tahap 6:** ✅ laporan pembayaran/tagihan/paket/realisasi/keuangan + cetak & ekspor CSV (diselesaikan bersama Tahap 4).
-- **Tahap 7:** ⏳ pengujian menyeluruh, manajemen pengguna, penyempurnaan, UAT, kesiapan produksi.
+- **Tahap 7:** ⏳ pengujian menyeluruh, penyempurnaan, UAT, kesiapan produksi.
 
 ---
 

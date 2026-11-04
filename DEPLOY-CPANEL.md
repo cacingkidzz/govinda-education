@@ -208,13 +208,18 @@ Cookie session otomatis memakai flag `Secure` saat request HTTPS terdeteksi.
 ## 10. Login pertama & pengamanan akun
 
 1. Buka URL aplikasi → halaman login.
-2. Login `admin` / `Admin@2026`, lalu **segera ganti password**.
-3. Login `petugas` / `Petugas@2026` → ganti password.
-4. Buka **Profil Bimbel** → isi nama, alamat, kontak, dan unggah logo.
-5. Pastikan tidak ada akun default yang masih memakai password awal.
+2. Login `admin` / `Admin@2026`.
+3. Buka **Sistem → Manajemen Pengguna**, lalu gunakan **Atur Ulang Password**:
+   - ganti password `admin`,
+   - ganti password `petugas`,
+   - buat akun petugas baru bila perlu.
+4. Login ulang dengan password baru untuk memastikan berhasil.
+5. Buka **Profil Bimbel** → isi nama, alamat, kontak, dan unggah logo.
+6. Pastikan tidak ada akun default yang masih memakai password awal.
 
-> Modul manajemen pengguna belum tersedia pada tahap ini. Sampai modul itu ada,
-> penggantian password dilakukan lewat database dengan `password_hash()`.
+> Akun tidak dapat dihapus permanen, hanya dinonaktifkan. Minimal satu
+> administrator aktif harus selalu tersedia, dan akun sendiri tidak dapat
+> dinonaktifkan atau diturunkan perannya.
 
 ---
 
@@ -224,6 +229,7 @@ Lakukan berurutan; semua harus berhasil:
 
 - [ ] Halaman login tampil rapi (CSS/JS termuat, bukan halaman polos).
 - [ ] Login admin berhasil, dashboard menampilkan data nyata.
+- [ ] **Manajemen Pengguna** terbuka (admin), password default sudah diganti, dan petugas mendapat **403** saat membukanya.
 - [ ] Menu **Pengeluaran** terbuka; catat 1 pengeluaran lalu batalkan (admin).
 - [ ] **Profil Bimbel** menyimpan identitas dan logo.
 - [ ] Tambah siswa/guru + unggah foto (uji batas 2 MB).

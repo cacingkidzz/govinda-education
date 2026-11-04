@@ -678,6 +678,9 @@ function activity_meta(string $activity): array
         'profil_logo_reset'  => ['Reset Logo Bimbel', 'text-bg-warning', 'bi-arrow-counterclockwise'],
         'user_tambah'        => ['Tambah Pengguna', 'text-bg-success', 'bi-person-plus'],
         'user_edit'          => ['Edit Pengguna', 'text-bg-info', 'bi-pencil-square'],
+        'user_password'      => ['Atur Ulang Password', 'text-bg-primary', 'bi-key'],
+        'user_aktif'         => ['Aktifkan Pengguna', 'text-bg-success', 'bi-person-check'],
+        'user_nonaktif'      => ['Nonaktifkan Pengguna', 'text-bg-warning', 'bi-person-dash'],
     ];
 
     if (isset($map[$activity])) {
