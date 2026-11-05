@@ -1,0 +1,5 @@
+---
+deployment:
+  tasks:
+    - export DEPLOYPATH=/home/ppdf2433/public_html/govinda-education.my.id/
+    - /usr/bin/find . -mindepth 1 -maxdepth 1 ! -name '.git' -exec /bin/cp -R {} $DEPLOYPATH \;
