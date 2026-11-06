@@ -271,6 +271,11 @@ require_once ROOT_PATH . '/includes/header.php';
                     <a href="<?= e($listUrl) ?>" class="btn btn-light btn-sm" title="Lihat pada daftar realisasi">
                         <i class="bi bi-list-check me-1"></i>Daftar
                     </a>
+                    <a href="<?= e(url('admin/group/absensi.php?group_id=' . (int) $group['id'])) ?>"
+                       class="btn btn-light btn-sm" title="Cetak lembar absensi siswa"
+                       target="_blank" rel="noopener">
+                        <i class="bi bi-printer me-1"></i>Absensi
+                    </a>
                 </div>
             </div>
             <div class="card-body p-0">

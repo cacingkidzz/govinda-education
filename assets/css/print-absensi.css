@@ -1,0 +1,410 @@
+/* ------------------------------------------------------------------
+   Lembar Absensi Siswa per Group — cetak A4 landscape
+   Dipakai oleh admin/group/absensi.php
+   ------------------------------------------------------------------ */
+
+:root {
+    --absen-teal: #0f766e;
+    --absen-gold: #c9931e;
+    --absen-navy: #0b2532;
+    --absen-ink: #1f2937;
+    --absen-muted: #6b7280;
+    --absen-line: #8a969e;
+}
+
+* {
+    box-sizing: border-box;
+}
+
+body {
+    margin: 0;
+    padding: 20px 16px 40px;
+    background: #eef2f4;
+    color: var(--absen-ink);
+    font-family: "Segoe UI", system-ui, -apple-system, sans-serif;
+    font-size: 11px;
+    overflow-x: auto;
+}
+
+/* Toolbar (tidak ikut tercetak) */
+.absensi-toolbar {
+    width: 297mm;
+    max-width: 100%;
+    margin: 0 auto 12px;
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+    gap: 8px;
+}
+
+.absensi-toolbar .btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 8px 15px;
+    border-radius: 8px;
+    border: 1px solid transparent;
+    font-size: 12px;
+    font-weight: 600;
+    text-decoration: none;
+    cursor: pointer;
+    font-family: inherit;
+}
+
+.absensi-toolbar .btn-primary {
+    background: var(--absen-teal);
+    color: #fff;
+}
+
+.absensi-toolbar .btn-light {
+    background: #fff;
+    border-color: #d7dee2;
+    color: var(--absen-ink);
+}
+
+/* Kertas */
+.absensi-sheet {
+    width: 297mm;
+    max-width: 100%;
+    min-height: 210mm;
+    margin: 0 auto;
+    padding: 9mm 9mm 7mm;
+    background: #fff;
+    border-radius: 10px;
+    box-shadow: 0 16px 44px rgba(11, 37, 50, 0.16);
+    position: relative;
+}
+
+.absensi-sheet::before {
+    content: "";
+    position: absolute;
+    inset: 0 0 auto 0;
+    height: 5px;
+    background: linear-gradient(90deg, var(--absen-teal), var(--absen-gold));
+    border-radius: 10px 10px 0 0;
+}
+
+/* Kepala dokumen */
+.absensi-head {
+    display: flex;
+    align-items: flex-start;
+    gap: 14px;
+    padding-bottom: 7px;
+    border-bottom: 2px solid var(--absen-teal);
+}
+
+.absensi-brand {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+}
+
+.absensi-logo {
+    width: 44px;
+    height: 44px;
+    object-fit: contain;
+    flex: none;
+}
+
+.absensi-logo.logo-tile-dark {
+    padding: 5px;
+    border-radius: 8px;
+    background: var(--absen-navy);
+}
+
+.absensi-logo.logo-tile-light {
+    padding: 5px;
+    border-radius: 8px;
+    background: #f8fafc;
+}
+
+.absensi-brand-name {
+    margin: 0;
+    font-size: 15px;
+    font-weight: 800;
+    color: var(--absen-navy);
+    letter-spacing: 0.2px;
+}
+
+.absensi-brand-tagline {
+    margin: 1px 0 3px;
+    font-size: 8.5px;
+    font-weight: 700;
+    letter-spacing: 1.1px;
+    text-transform: uppercase;
+    color: var(--absen-teal);
+}
+
+.absensi-brand-meta {
+    font-size: 8.5px;
+    color: var(--absen-muted);
+    line-height: 1.35;
+}
+
+.absensi-title {
+    margin-left: auto;
+    text-align: right;
+    min-width: 150px;
+}
+
+.absensi-title h1 {
+    margin: 0;
+    font-size: 16px;
+    letter-spacing: 1.4px;
+    text-transform: uppercase;
+    color: var(--absen-navy);
+}
+
+.absensi-title .absensi-subtitle {
+    margin-top: 2px;
+    font-size: 9px;
+    font-weight: 700;
+    letter-spacing: 0.8px;
+    text-transform: uppercase;
+    color: var(--absen-teal);
+}
+
+/* Info group */
+.absensi-info {
+    display: grid;
+    grid-template-columns: 1.1fr 1.1fr 1fr;
+    gap: 2px 16px;
+    margin: 7px 0 6px;
+    font-size: 9.5px;
+}
+
+.absensi-info .info-item {
+    display: flex;
+    gap: 5px;
+    min-width: 0;
+}
+
+.absensi-info .info-label {
+    color: var(--absen-muted);
+    white-space: nowrap;
+}
+
+.absensi-info .info-value {
+    color: var(--absen-navy);
+    font-weight: 600;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.absensi-info .info-line {
+    display: inline-block;
+    min-width: 34mm;
+    border-bottom: 1px dotted var(--absen-muted);
+}
+
+/* Tabel absensi */
+.absen-table {
+    width: 100%;
+    border-collapse: collapse;
+    table-layout: fixed;
+    margin-top: 4px;
+}
+
+.absen-table th,
+.absen-table td {
+    border: 1px solid var(--absen-line);
+    padding: 2px 3px;
+}
+
+.absen-table thead th {
+    background: #eaf5f2;
+    color: var(--absen-navy);
+    text-align: center;
+    vertical-align: middle;
+    font-size: 8px;
+    font-weight: 700;
+    line-height: 1.2;
+}
+
+.absen-table thead th.is-no,
+.absen-table thead th.is-name,
+.absen-table thead th.is-class,
+.absen-table thead th.is-total,
+.absen-table thead th.is-sign {
+    background: #dcefea;
+}
+
+.absen-table .col-no,
+.absen-table .col-class,
+.absen-table .col-total,
+.absen-table .col-sign {
+    width: 6%;
+}
+
+.absen-table .col-no {
+    width: 3%;
+}
+
+.absen-table .col-name {
+    width: 21%;
+}
+
+.absen-table .col-class {
+    width: 7%;
+}
+
+.absen-table .col-total {
+    width: 6.5%;
+}
+
+.absen-table .col-sign {
+    width: 8%;
+}
+
+.absen-table tbody td {
+    height: 7.6mm;
+    font-size: 9.5px;
+    vertical-align: middle;
+}
+
+.absen-table tbody td.cell-no {
+    text-align: center;
+    color: var(--absen-muted);
+}
+
+.absen-table tbody td.cell-name {
+    text-align: left;
+    font-weight: 600;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.absen-table tbody td.cell-class {
+    text-align: center;
+}
+
+.absen-table tbody td.cell-mark {
+    text-align: center;
+}
+
+.absen-table tbody td.cell-total,
+.absen-table tbody td.cell-sign {
+    background: #fbfcfc;
+}
+
+.absen-table .date-head {
+    height: 9.5mm;
+    font-size: 7.5px;
+    font-weight: 600;
+    color: var(--absen-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.3px;
+}
+
+.absen-table .date-line {
+    display: block;
+    height: 6px;
+    margin-top: 2px;
+    border-bottom: 1px dotted #4b5563;
+}
+
+/* Legend & tanda tangan */
+.absensi-legend {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px 16px;
+    margin-top: 5px;
+    font-size: 8.5px;
+    color: #374151;
+}
+
+.absensi-legend strong {
+    color: var(--absen-navy);
+}
+
+.absensi-sign {
+    display: flex;
+    justify-content: space-between;
+    gap: 18mm;
+    margin-top: 9mm;
+    font-size: 9.5px;
+}
+
+.absensi-sign-box {
+    width: 34%;
+    text-align: center;
+}
+
+.absensi-sign-box.is-right {
+    margin-left: auto;
+}
+
+.absensi-sign-box .sign-space {
+    height: 13mm;
+}
+
+.absensi-sign-box .sign-name {
+    border-top: 1px solid var(--absen-ink);
+    padding-top: 3px;
+    font-weight: 700;
+    color: var(--absen-navy);
+}
+
+.absensi-sign-box .sign-role {
+    font-size: 8.5px;
+    color: var(--absen-muted);
+}
+
+.absensi-footer {
+    display: flex;
+    justify-content: space-between;
+    gap: 12px;
+    margin-top: 6mm;
+    padding-top: 5px;
+    border-top: 1px dashed #d7dee2;
+    font-size: 8px;
+    color: var(--absen-muted);
+}
+
+/* Cetak */
+@page {
+    size: A4 landscape;
+    margin: 8mm;
+}
+
+@media print {
+    body {
+        background: #fff;
+        padding: 0;
+        overflow: visible;
+        -webkit-print-color-adjust: exact;
+        print-color-adjust: exact;
+    }
+
+    .absensi-toolbar {
+        display: none !important;
+    }
+
+    .absensi-sheet {
+        width: auto;
+        max-width: none;
+        min-height: 0;
+        margin: 0;
+        padding: 0;
+        border-radius: 0;
+        box-shadow: none;
+    }
+
+    .absensi-sheet::before {
+        display: none;
+    }
+
+    .absen-table thead {
+        display: table-header-group;
+    }
+
+    .absen-table tr {
+        page-break-inside: avoid;
+    }
+
+    .absensi-sign {
+        page-break-inside: avoid;
+    }
+}

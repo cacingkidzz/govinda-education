@@ -687,10 +687,14 @@ require_once ROOT_PATH . '/includes/header.php';
                         <strong>8 pertemuan</strong> adalah target paket siswa; jadwal tetap fleksibel dan
                         boleh berubah kapan saja. Hanya pertemuan <strong>terlaksana</strong> yang dihitung ke paket.
                     </div>
-                    <div class="d-flex flex-wrap gap-2">
+                    <div class="d-flex flex-wrap align-items-center gap-2">
                         <span class="badge text-bg-light"><?= e((string) count($meetingRows)) ?> tercatat</span>
                         <span class="badge text-bg-success"><?= e((string) $meetingDoneCount) ?> terlaksana</span>
                         <span class="badge text-bg-info"><?= e((string) $meetingScheduledCount) ?> terjadwal</span>
+                        <a href="<?= e(url('admin/group/absensi.php?group_id=' . $id)) ?>"
+                           class="btn btn-light btn-sm" title="Cetak lembar absensi siswa" target="_blank" rel="noopener">
+                            <i class="bi bi-printer me-1"></i>Cetak Absensi
+                        </a>
                     </div>
                 </div>
 

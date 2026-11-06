@@ -249,6 +249,12 @@ require_once ROOT_PATH . '/includes/header.php';
                                        title="Detail" aria-label="Detail <?= e($group['name']) ?>">
                                         <i class="bi bi-eye"></i>
                                     </a>
+                                    <a href="<?= e(url('admin/group/absensi.php?group_id=' . (int) $group['id'])) ?>"
+                                       class="btn btn-light btn-sm" title="Cetak absensi"
+                                       aria-label="Cetak absensi <?= e($group['name']) ?>"
+                                       target="_blank" rel="noopener">
+                                        <i class="bi bi-printer"></i>
+                                    </a>
                                     <?php if ($isAdmin): ?>
                                         <a href="<?= e(url('admin/group/edit.php?id=' . (int) $group['id'])) ?>"
                                            class="btn btn-warning btn-sm" title="Edit"
