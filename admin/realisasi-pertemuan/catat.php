@@ -46,6 +46,10 @@ if ($relation === null) {
     abort_404('Relasi kelompok–mata pelajaran tidak ditemukan.');
 }
 
+// Pertemuan manual: tidak terikat jadwal. Dipakai untuk pertemuan tambahan,
+// perubahan mendadak, atau dua pertemuan pada hari yang sama.
+$isManual = $meeting === null && $scheduleId <= 0;
+
 $state = pull_form_state();
 $errors = $state['errors'];
 $old = $state['old'];
@@ -69,14 +73,24 @@ $returnFrom = get_string('return_from');
 $backParams = [];
 if ($returnFrom !== '' && substr_count($returnFrom, '|') === 1) {
     [$backFrom, $backTo] = explode('|', $returnFrom, 2);
-    $backParams = ['date_from' => $backFrom, 'date_to' => $backTo];
+    if (valid_date($backFrom) && valid_date($backTo)) {
+        $backParams = ['date_from' => $backFrom, 'date_to' => $backTo];
+    }
 }
+$returnTo = get_string('return_to') === 'rekap' ? 'rekap' : '';
+$backUrl = $returnTo === 'rekap'
+    ? 'admin/realisasi-pertemuan/rekap.php'
+    : 'admin/realisasi-pertemuan/index.php';
 
-$pageTitle = $meeting !== null ? 'Ubah Realisasi Pertemuan' : 'Catat Realisasi Pertemuan';
-$pageSubtitle = 'Tentukan status pelaksanaan. Hanya status Terlaksana yang menambah hitungan paket siswa.';
+$pageTitle = $meeting !== null
+    ? 'Ubah Realisasi Pertemuan'
+    : ($isManual ? 'Catat Pertemuan Manual' : 'Catat Realisasi Pertemuan');
+$pageSubtitle = $isManual
+    ? 'Pertemuan manual tidak terikat jadwal. Boleh lebih dari satu pertemuan pada hari yang sama asalkan jamnya berbeda.'
+    : 'Tentukan status pelaksanaan. Hanya status Terlaksana yang menambah hitungan paket siswa.';
 $breadcrumbs = [
-    ['label' => 'Realisasi Pertemuan', 'url' => url_query('admin/realisasi-pertemuan/index.php', $backParams)],
-    ['label' => $meeting !== null ? 'Ubah Realisasi' : 'Catat Realisasi'],
+    ['label' => 'Realisasi Pertemuan', 'url' => url_query('admin/realisasi-pertemuan/index.php')],
+    ['label' => $meeting !== null ? 'Ubah Realisasi' : ($isManual ? 'Pertemuan Manual' : 'Catat Realisasi')],
 ];
 $activeMenu = 'realisasi';
 
@@ -92,6 +106,18 @@ require_once ROOT_PATH . '/includes/header.php';
     </div>
 <?php endif; ?>
 
+<?php if ($isManual): ?>
+    <div class="alert alert-info d-flex gap-2 align-items-start">
+        <i class="bi bi-journal-plus mt-1"></i>
+        <div class="small">
+            <div class="fw-semibold">Pertemuan manual</div>
+            Pertemuan ini dicatat tanpa terikat jadwal tetap. Cocok untuk pertemuan tambahan,
+            jadwal mendadak, atau <strong>dua pertemuan pada hari yang sama</strong>.
+            Pastikan jam mulai berbeda dengan pertemuan lain pada mata pelajaran dan tanggal yang sama.
+        </div>
+    </div>
+<?php endif; ?>
+
 <div class="row g-3">
     <div class="col-lg-7">
         <form method="post" action="<?= e(url('admin/realisasi-pertemuan/proses.php')) ?>"
@@ -101,12 +127,17 @@ require_once ROOT_PATH . '/includes/header.php';
             <input type="hidden" name="meeting_id" value="<?= $meetingId ?>">
             <input type="hidden" name="group_subject_id" value="<?= $groupSubjectId ?>">
             <input type="hidden" name="return_from" value="<?= e($returnFrom) ?>">
+            <input type="hidden" name="return_to" value="<?= e($returnTo) ?>">
 
             <div class="card mb-3">
                 <div class="card-header">
                     <div>
                         <h2 class="card-title">Informasi Pertemuan</h2>
-                        <div class="card-subtitle">Diambil dari jadwal Stage 3; guru mengikuti relasi mata pelajaran.</div>
+                        <div class="card-subtitle">
+                            <?= $isManual
+                                ? 'Pertemuan manual: tentukan tanggal dan jam pelaksanaan; guru mengikuti relasi mata pelajaran.'
+                                : 'Diambil dari jadwal Stage 3; guru mengikuti relasi mata pelajaran.' ?>
+                        </div>
                     </div>
                     <?= meeting_status_badge($statusValue) ?>
                 </div>
@@ -160,7 +191,12 @@ require_once ROOT_PATH . '/includes/header.php';
                                 <?php endforeach; ?>
                             </select>
                             <?= field_error($errors, 'status') ?>
-                            <div class="form-text">Hanya Terlaksana yang dihitung ke paket belajar.</div>
+                            <div class="form-text">
+                                Hanya Terlaksana yang dihitung ke paket belajar.
+                                <?php if ($isManual): ?>
+                                    Pertemuan lain di tanggal yang sama tetap dapat dicatat selama jam mulainya berbeda.
+                                <?php endif; ?>
+                            </div>
                         </div>
                         <div class="col-md-6">
                             <label for="notes" class="form-label">Catatan</label>
@@ -226,7 +262,7 @@ require_once ROOT_PATH . '/includes/header.php';
                             data-confirm-button="Ya, simpan" data-confirm-icon="question">
                         <i class="bi bi-check2-circle me-1"></i>Simpan Realisasi
                     </button>
-                    <a href="<?= e(url_query('admin/realisasi-pertemuan/index.php', $backParams)) ?>" class="btn btn-secondary">
+                    <a href="<?= e(url_query($backUrl, $backParams)) ?>" class="btn btn-secondary">
                         <i class="bi bi-arrow-left me-1"></i>Kembali
                     </a>
                 </div>

@@ -499,9 +499,10 @@ final class Meeting
                     ]);
                 } catch (PDOException $exception) {
                     if ((string) $exception->getCode() === '23000') {
-                        throw new DomainException(
-                            'Realisasi untuk jadwal dan tanggal ini sudah tercatat. Muat ulang halaman daftar.'
-                        );
+                        throw new DomainException($scheduleId > 0
+                            ? 'Realisasi untuk jadwal dan tanggal ini sudah tercatat. Muat ulang halaman daftar.'
+                            : 'Sudah ada pertemuan pada mata pelajaran, tanggal, dan jam mulai yang sama. '
+                                . 'Ubah jam mulai agar pertemuan lain di hari yang sama dapat disimpan.');
                     }
                     throw $exception;
                 }
@@ -750,6 +751,143 @@ final class Meeting
         );
         $stmt->execute($params);
         return $stmt->fetchAll();
+    }
+
+    /**
+     * Rekap pertemuan per kelompok: jumlah per status dan tanggal-tanggalnya.
+     *
+     * Dipakai halaman "Rekap per Kelompok" agar mudah melihat berapa kali
+     * sebuah kelompok sudah belajar dan pada tanggal berapa saja. Rekap
+     * memakai data class_meetings apa adanya; tidak mengubah struktur tabel.
+     *
+     * @param array{group_id?:string,group_subject_id?:string,subject_id?:string,date_from?:string,date_to?:string,only_with_meetings?:bool} $filters
+     * @return array<int, array<string, mixed>>
+     */
+    public static function groupSummary(array $filters = []): array
+    {
+        $onlyWithMeetings = !empty($filters['only_with_meetings']);
+        $wantedGroup = (int) ($filters['group_id'] ?? 0);
+        $wantedSubject = (string) ($filters['subject_id'] ?? '');
+
+        $summary = [];
+        foreach (Group::all($wantedSubject !== '' ? ['subject_id' => $wantedSubject] : []) as $group) {
+            $groupId = (int) $group['id'];
+            if ($wantedGroup > 0 && $groupId !== $wantedGroup) {
+                continue;
+            }
+            $summary[$groupId] = [
+                'group'      => $group,
+                'counts'     => array_fill_keys(self::statusOptions(), 0),
+                'total'      => 0,
+                'done'       => 0,
+                'first_done' => null,
+                'last_done'  => null,
+                'subjects'   => [],
+            ];
+        }
+        if ($summary === []) {
+            return [];
+        }
+
+        $where = ['1 = 1'];
+        $params = [];
+        if (($filters['date_from'] ?? '') !== '' && valid_date((string) $filters['date_from'])) {
+            $where[] = 'cm.meeting_date >= :date_from';
+            $params[':date_from'] = (string) $filters['date_from'];
+        }
+        if (($filters['date_to'] ?? '') !== '' && valid_date((string) $filters['date_to'])) {
+            $where[] = 'cm.meeting_date <= :date_to';
+            $params[':date_to'] = (string) $filters['date_to'];
+        }
+        if (($filters['group_subject_id'] ?? '') !== '') {
+            $where[] = 'cm.group_subject_id = :group_subject_id';
+            $params[':group_subject_id'] = (int) $filters['group_subject_id'];
+        }
+        if ($wantedSubject !== '') {
+            $where[] = 'gsub.subject_id = :subject_id';
+            $params[':subject_id'] = (int) $wantedSubject;
+        }
+
+        $stmt = db()->prepare(
+            'SELECT cm.id, cm.group_id, cm.group_subject_id, cm.meeting_date,
+                    cm.start_time, cm.end_time, cm.status, cm.notes,
+                    s.name AS subject_name, t.name AS teacher_name
+             FROM class_meetings cm
+             JOIN group_subjects gsub ON gsub.id = cm.group_subject_id
+             JOIN subjects s ON s.id = gsub.subject_id
+             JOIN teachers t ON t.id = cm.teacher_id
+             WHERE ' . implode(' AND ', $where) . '
+             ORDER BY cm.meeting_date ASC, cm.start_time ASC'
+        );
+        $stmt->execute($params);
+
+        foreach ($stmt->fetchAll() as $row) {
+            $groupId = (int) $row['group_id'];
+            if (!isset($summary[$groupId])) {
+                continue;
+            }
+
+            $status = (string) $row['status'];
+            $summary[$groupId]['total']++;
+            $summary[$groupId]['counts'][$status] = (int) ($summary[$groupId]['counts'][$status] ?? 0) + 1;
+
+            if ($status === self::STATUS_DONE) {
+                $summary[$groupId]['done']++;
+                $date = (string) $row['meeting_date'];
+                if ($summary[$groupId]['first_done'] === null || $date < $summary[$groupId]['first_done']) {
+                    $summary[$groupId]['first_done'] = $date;
+                }
+                if ($summary[$groupId]['last_done'] === null || $date > $summary[$groupId]['last_done']) {
+                    $summary[$groupId]['last_done'] = $date;
+                }
+            }
+
+            $relationId = (int) $row['group_subject_id'];
+            if (!isset($summary[$groupId]['subjects'][$relationId])) {
+                $summary[$groupId]['subjects'][$relationId] = [
+                    'group_subject_id' => $relationId,
+                    'subject_name'     => (string) $row['subject_name'],
+                    'teacher_name'     => (string) $row['teacher_name'],
+                    'counts'           => array_fill_keys(self::statusOptions(), 0),
+                    'total'            => 0,
+                    'done'             => 0,
+                    'dates'            => [],
+                ];
+            }
+
+            $subject = &$summary[$groupId]['subjects'][$relationId];
+            $subject['total']++;
+            $subject['counts'][$status] = (int) ($subject['counts'][$status] ?? 0) + 1;
+            if ($status === self::STATUS_DONE) {
+                $subject['done']++;
+            }
+            $subject['dates'][] = [
+                'meeting_id'   => (int) $row['id'],
+                'meeting_date' => (string) $row['meeting_date'],
+                'start_time'   => (string) $row['start_time'],
+                'end_time'     => (string) $row['end_time'],
+                'status'       => $status,
+                'notes'        => (string) ($row['notes'] ?? ''),
+            ];
+            unset($subject);
+        }
+
+        foreach ($summary as &$item) {
+            usort(
+                $item['subjects'],
+                static fn (array $a, array $b): int => strcmp((string) $a['subject_name'], (string) $b['subject_name'])
+            );
+        }
+        unset($item);
+
+        if ($onlyWithMeetings) {
+            $summary = array_filter(
+                $summary,
+                static fn (array $item): bool => (int) $item['total'] > 0
+            );
+        }
+
+        return array_values($summary);
     }
 
     /**

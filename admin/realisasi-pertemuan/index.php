@@ -56,6 +56,8 @@ if ($onlyUnrecorded) {
 $groups = Group::all();
 $teachers = Teacher::all();
 $subjects = Subject::all();
+$manualRelations = GroupSubject::activeOptions();
+$manualReturnFrom = $dateFrom . '|' . $dateTo;
 $hasFilter = $singleDate !== '' || $groupId !== '' || $teacherId !== '' || $subjectId !== ''
     || $status !== '' || $onlyUnrecorded
     || $dateFrom !== $monthStart || $dateTo !== $monthEnd;
@@ -74,10 +76,15 @@ $pageTitle = 'Realisasi Pertemuan';
 $pageSubtitle = 'Catat apakah kegiatan belajar benar-benar terlaksana. Hanya status Terlaksana yang dihitung ke paket.';
 $breadcrumbs = [['label' => 'Realisasi Pertemuan']];
 $activeMenu = 'realisasi';
-$pageStyles = ['vendor/datatables/datatables.min.css'];
+$pageStyles = [
+    'vendor/datatables/datatables.min.css',
+    'vendor/select2/select2.min.css',
+    'vendor/select2/select2-bootstrap-5-theme.min.css',
+];
 $pageScripts = [
     'vendor/datatables/datatables.min.js',
     'vendor/datatables/datatables.bootstrap5.min.js',
+    'vendor/select2/select2.min.js',
 ];
 
 require_once ROOT_PATH . '/includes/header.php';
@@ -173,7 +180,7 @@ require_once ROOT_PATH . '/includes/header.php';
 </div>
 
 <div class="card">
-    <div class="card-header">
+    <div class="card-header flex-wrap gap-2">
         <div>
             <h2 class="card-title">Daftar Jadwal &amp; Realisasi</h2>
             <div class="card-subtitle">
@@ -182,6 +189,20 @@ require_once ROOT_PATH . '/includes/header.php';
                 &middot; <?= e(number_format($doneCount, 0, ',', '.')) ?> terlaksana
                 &middot; <?= e(number_format($scheduledCount, 0, ',', '.')) ?> belum dicatat
             </div>
+        </div>
+        <div class="d-flex flex-wrap gap-2">
+            <a href="<?= e(url_query('admin/realisasi-pertemuan/rekap.php', [
+                'date_from' => $dateFrom,
+                'date_to'   => $dateTo,
+                'group_id'  => $groupId,
+                'subject_id'=> $subjectId,
+            ])) ?>" class="btn btn-light btn-sm">
+                <i class="bi bi-bar-chart-steps me-1"></i>Rekap per Group
+            </a>
+            <button type="button" class="btn btn-primary btn-sm" data-bs-toggle="modal"
+                    data-bs-target="#manualMeetingModal">
+                <i class="bi bi-journal-plus me-1"></i>Pertemuan Manual
+            </button>
         </div>
     </div>
     <div class="card-body p-0">
@@ -229,6 +250,12 @@ require_once ROOT_PATH . '/includes/header.php';
                             'group_subject_id' => (int) $row['group_subject_id'],
                             'return_from' => $dateFrom . '|' . $dateTo,
                         ]);
+                        $manualRowUrl = url_query('admin/realisasi-pertemuan/catat.php', [
+                            'group_subject_id' => (int) $row['group_subject_id'],
+                            'tanggal'          => (string) $row['meeting_date'],
+                            'return_from'      => $dateFrom . '|' . $dateTo,
+                            'manual'           => 1,
+                        ]);
                         ?>
                         <tr>
                             <td class="text-secondary"><?= e((string) ($index + 1)) ?></td>
@@ -265,6 +292,10 @@ require_once ROOT_PATH . '/includes/header.php';
                                        title="<?= $row['has_realization'] ? 'Ubah realisasi' : 'Catat realisasi' ?>">
                                         <i class="bi <?= $row['has_realization'] ? 'bi-pencil-square' : 'bi-check2-square' ?>"></i>
                                     </a>
+                                    <a href="<?= e($manualRowUrl) ?>" class="btn btn-sm btn-light"
+                                       title="Tambah pertemuan lain di tanggal ini (manual)">
+                                        <i class="bi bi-plus-lg"></i>
+                                    </a>
                                 </div>
                             </td>
                         </tr>
@@ -280,7 +311,10 @@ require_once ROOT_PATH . '/includes/header.php';
     <i class="bi bi-info-circle"></i>
     <span>Pertemuan dihitung untuk seluruh siswa yang menjadi anggota kelompok pada tanggal pelaksanaan,
         tanpa melihat kehadiran. Kelas yang dibatalkan atau dipindahkan tidak dihitung, dan satu realisasi
-        tidak pernah dihitung dua kali.</span>
+        tidak pernah dihitung dua kali. Gunakan <strong>Pertemuan Manual</strong> untuk pertemuan tambahan
+        atau dua pertemuan pada hari yang sama.</span>
 </div>
+
+<?php require __DIR__ . '/_manual_modal.php'; ?>
 
 <?php require_once ROOT_PATH . '/includes/footer.php'; ?>

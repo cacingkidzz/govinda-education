@@ -20,8 +20,11 @@ $replacementDate = post_string('replacement_date');
 $replacementStart = post_string('replacement_start');
 $replacementEnd = post_string('replacement_end');
 $returnFrom = post_string('return_from');
+$returnTo = post_string('return_to') === 'rekap' ? 'rekap' : '';
 
-$backUrl = 'admin/realisasi-pertemuan/index.php';
+$backUrl = $returnTo === 'rekap'
+    ? 'admin/realisasi-pertemuan/rekap.php'
+    : 'admin/realisasi-pertemuan/index.php';
 $backParams = [];
 if ($returnFrom !== '' && substr_count($returnFrom, '|') === 1) {
     [$from, $to] = explode('|', $returnFrom, 2);
@@ -36,6 +39,7 @@ $formUrl = 'admin/realisasi-pertemuan/catat.php?' . http_build_query(array_filte
     'group_subject_id' => $groupSubjectId > 0 ? $groupSubjectId : null,
     'tanggal'          => valid_date($meetingDate) ? $meetingDate : null,
     'return_from'      => $returnFrom !== '' ? $returnFrom : null,
+    'return_to'        => $returnTo !== '' ? $returnTo : null,
 ]));
 
 $old = [
