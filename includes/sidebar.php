@@ -165,6 +165,13 @@ $activeMenu = $activeMenu ?? '';
                     </a>
                 </li>
                 <li class="nav-item">
+                    <a href="<?= e(url('admin/laporan/pembayaran-group.php')) ?>"
+                       class="nav-link <?= $activeMenu === 'laporan-pembayaran-group' ? 'active' : '' ?>">
+                        <i class="nav-icon bi bi-people-fill"></i>
+                        <p>Pembayaran per Group</p>
+                    </a>
+                </li>
+                <li class="nav-item">
                     <a href="<?= e(url('admin/laporan/tagihan.php')) ?>"
                        class="nav-link <?= $activeMenu === 'laporan-tagihan' ? 'active' : '' ?>">
                         <i class="nav-icon bi bi-receipt-cutoff"></i>

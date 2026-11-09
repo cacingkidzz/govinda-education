@@ -492,6 +492,126 @@ final class Payment
         ];
     }
 
+    /**
+     * Rekap uang diterima per group beserta rincian per siswa.
+     *
+     * Nominal dihitung dari payment_allocations, bukan payments.amount,
+     * agar pembayaran yang melunasi beberapa tagihan sekaligus terbagi
+     * tepat ke group asal masing-masing tagihan (snapshot
+     * invoices.group_id). Memakai payments.amount akan menghitung ganda
+     * saat satu nota melunasi tagihan dari group yang berbeda.
+     *
+     * @param array{date_from?:string,date_to?:string,group_id?:string,student_id?:string,method?:string} $filters
+     * @return array<int, array<string, mixed>>
+     */
+    public static function groupReport(array $filters = []): array
+    {
+        $where = ["p.status = 'berhasil'"];
+        $params = [];
+
+        if (($filters['date_from'] ?? '') !== '' && valid_date((string) $filters['date_from'])) {
+            $where[] = 'p.payment_date >= :date_from';
+            $params[':date_from'] = (string) $filters['date_from'];
+        }
+        if (($filters['date_to'] ?? '') !== '' && valid_date((string) $filters['date_to'])) {
+            $where[] = 'p.payment_date <= :date_to';
+            $params[':date_to'] = (string) $filters['date_to'];
+        }
+        if (($filters['group_id'] ?? '') !== '') {
+            $where[] = 'i.group_id = :group_id';
+            $params[':group_id'] = (int) $filters['group_id'];
+        }
+        if (($filters['student_id'] ?? '') !== '') {
+            $where[] = 'i.student_id = :student_id';
+            $params[':student_id'] = (int) $filters['student_id'];
+        }
+        if (in_array($filters['method'] ?? '', self::methodOptions(), true)) {
+            $where[] = 'p.method = :method';
+            $params[':method'] = (string) $filters['method'];
+        }
+
+        $stmt = db()->prepare(
+            'SELECT i.group_id,
+                    MAX(COALESCE(g.name, i.group_name)) AS group_name,
+                    i.student_id,
+                    MAX(COALESCE(s.code, i.student_code)) AS student_code,
+                    MAX(COALESCE(s.name, i.student_name)) AS student_name,
+                    MAX(COALESCE(s.school_class, "")) AS school_class,
+                    COUNT(DISTINCT p.id) AS payment_count,
+                    COUNT(DISTINCT i.id) AS invoice_count,
+                    COALESCE(SUM(pa.amount), 0) AS total_amount,
+                    MAX(p.payment_date) AS last_payment_date,
+                    GROUP_CONCAT(DISTINCT i.package_number
+                                 ORDER BY i.package_number SEPARATOR ",") AS package_numbers
+             FROM payment_allocations pa
+             JOIN payments p ON p.id = pa.payment_id
+             JOIN invoices i ON i.id = pa.invoice_id
+             LEFT JOIN students s ON s.id = i.student_id
+             LEFT JOIN class_groups g ON g.id = i.group_id
+             WHERE ' . implode(' AND ', $where) . '
+             GROUP BY i.group_id, i.student_id
+             ORDER BY group_name ASC, student_name ASC'
+        );
+        $stmt->execute($params);
+
+        $report = [];
+        foreach ($stmt->fetchAll() as $row) {
+            $groupId = (int) $row['group_id'];
+            if (!isset($report[$groupId])) {
+                $report[$groupId] = [
+                    'group_id'           => $groupId,
+                    'group_name'         => (string) $row['group_name'],
+                    'students'           => [],
+                    'student_count'      => 0,
+                    'payment_count'      => 0,
+                    'invoice_count'      => 0,
+                    'total_amount'       => 0.0,
+                    'first_payment_date' => null,
+                    'last_payment_date'  => null,
+                ];
+            }
+
+            $packageNumbers = [];
+            foreach (explode(',', (string) ($row['package_numbers'] ?? '')) as $number) {
+                $number = trim($number);
+                if ($number !== '') {
+                    $packageNumbers[] = (int) $number;
+                }
+            }
+            sort($packageNumbers);
+
+            $student = [
+                'student_id'       => (int) $row['student_id'],
+                'student_code'     => (string) $row['student_code'],
+                'student_name'     => (string) $row['student_name'],
+                'school_class'     => (string) $row['school_class'],
+                'payment_count'    => (int) $row['payment_count'],
+                'invoice_count'    => (int) $row['invoice_count'],
+                'total_amount'     => (float) $row['total_amount'],
+                'last_payment_date'=> (string) $row['last_payment_date'],
+                'package_numbers'  => $packageNumbers,
+            ];
+            $report[$groupId]['students'][] = $student;
+            $report[$groupId]['student_count']++;
+            $report[$groupId]['payment_count'] += $student['payment_count'];
+            $report[$groupId]['invoice_count'] += $student['invoice_count'];
+            $report[$groupId]['total_amount'] += $student['total_amount'];
+
+            $date = $student['last_payment_date'];
+            if ($date !== '') {
+                $first = $report[$groupId]['first_payment_date'];
+                if ($first === null || $date < $first) {
+                    $report[$groupId]['first_payment_date'] = $date;
+                }
+                if ($report[$groupId]['last_payment_date'] === null || $date > $report[$groupId]['last_payment_date']) {
+                    $report[$groupId]['last_payment_date'] = $date;
+                }
+            }
+        }
+
+        return array_values($report);
+    }
+
     // -----------------------------------------------------------------
     // Ringkasan dashboard
     // -----------------------------------------------------------------

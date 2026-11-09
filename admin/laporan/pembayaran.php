@@ -187,7 +187,17 @@ require_once ROOT_PATH . '/includes/header.php';
                 total <?= e(rupiah($totalAmount)) ?>
             </div>
         </div>
-        <?= report_toolbar(url_query('admin/laporan/pembayaran.php', $csvParams)) ?>
+        <div class="d-flex flex-wrap gap-2">
+            <a href="<?= e(url_query('admin/laporan/pembayaran-group.php', [
+                'date_from' => $dateFrom,
+                'date_to'   => $dateTo,
+                'group_id'  => $groupId,
+                'method'    => $method,
+            ])) ?>" class="btn btn-light no-print" title="Rekap uang diterima per group">
+                <i class="bi bi-people-fill me-1"></i>Rekap per Group
+            </a>
+            <?= report_toolbar(url_query('admin/laporan/pembayaran.php', $csvParams)) ?>
+        </div>
     </div>
     <div class="card-body p-0">
         <?php if ($rows === []): ?>
