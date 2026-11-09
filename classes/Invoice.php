@@ -616,6 +616,124 @@ final class Invoice
 
 
     /**
+     * Rekap tagihan per group dan per siswa untuk melihat potensi dana masuk.
+     *
+     * Berbeda dari rekap pembayaran, di sini semua tagihan non-batal ikut
+     * dihitung walau siswanya belum membayar. Nominal "sudah masuk" adalah
+     * alokasi pembayaran berhasil pada tagihan tersebut, sehingga:
+     *   sisa = total tagihan - sudah masuk.
+     *
+     * @param array{date_from?:string,date_to?:string,group_id?:string,student_id?:string,invoice_type?:string} $filters
+     * @return array<int, array<string, mixed>>
+     */
+    public static function groupBilling(array $filters = []): array
+    {
+        $where = ["i.status <> 'dibatalkan'"];
+        $params = [];
+
+        if (($filters['date_from'] ?? '') !== '' && valid_date((string) $filters['date_from'])) {
+            $where[] = 'i.issue_date >= :date_from';
+            $params[':date_from'] = (string) $filters['date_from'];
+        }
+        if (($filters['date_to'] ?? '') !== '' && valid_date((string) $filters['date_to'])) {
+            $where[] = 'i.issue_date <= :date_to';
+            $params[':date_to'] = (string) $filters['date_to'];
+        }
+        if (($filters['group_id'] ?? '') !== '') {
+            $where[] = 'i.group_id = :group_id';
+            $params[':group_id'] = (int) $filters['group_id'];
+        }
+        if (($filters['student_id'] ?? '') !== '') {
+            $where[] = 'i.student_id = :student_id';
+            $params[':student_id'] = (int) $filters['student_id'];
+        }
+        if (in_array($filters['invoice_type'] ?? '', [self::TYPE_PACKAGE, self::TYPE_MONTHLY], true)) {
+            $where[] = 'i.invoice_type = :invoice_type';
+            $params[':invoice_type'] = (string) $filters['invoice_type'];
+        }
+
+        $stmt = db()->prepare(
+            'SELECT i.group_id,
+                    MAX(COALESCE(g.name, i.group_name)) AS group_name,
+                    i.student_id,
+                    MAX(COALESCE(s.code, i.student_code)) AS student_code,
+                    MAX(COALESCE(s.name, i.student_name)) AS student_name,
+                    MAX(COALESCE(s.school_class, "")) AS school_class,
+                    COUNT(*) AS invoice_count,
+                    COALESCE(SUM(CASE WHEN i.status = "belum_bayar" THEN 1 ELSE 0 END), 0) AS unpaid_count,
+                    COALESCE(SUM(i.total_amount), 0) AS billed_amount,
+                    COALESCE(SUM(paid.paid_amount), 0) AS received_amount,
+                    MIN(CASE WHEN i.status = "belum_bayar" THEN i.due_date END) AS oldest_due_date
+             FROM invoices i
+             LEFT JOIN students s ON s.id = i.student_id
+             LEFT JOIN class_groups g ON g.id = i.group_id
+             LEFT JOIN (
+                 SELECT pa.invoice_id, SUM(pa.amount) AS paid_amount
+                 FROM payment_allocations pa
+                 JOIN payments pay ON pay.id = pa.payment_id AND pay.status = "berhasil"
+                 GROUP BY pa.invoice_id
+             ) paid ON paid.invoice_id = i.id
+             WHERE ' . implode(' AND ', $where) . '
+             GROUP BY i.group_id, i.student_id
+             ORDER BY group_name ASC, student_name ASC'
+        );
+        $stmt->execute($params);
+
+        $report = [];
+        foreach ($stmt->fetchAll() as $row) {
+            $groupId = (int) $row['group_id'];
+            if (!isset($report[$groupId])) {
+                $report[$groupId] = [
+                    'group_id'        => $groupId,
+                    'group_name'      => (string) $row['group_name'],
+                    'students'        => [],
+                    'student_count'   => 0,
+                    'invoice_count'   => 0,
+                    'unpaid_count'    => 0,
+                    'billed_amount'   => 0.0,
+                    'received_amount' => 0.0,
+                    'debt_amount'     => 0.0,
+                    'oldest_due_date' => null,
+                ];
+            }
+
+            $billed = (float) $row['billed_amount'];
+            $received = (float) $row['received_amount'];
+            $debt = max(0.0, round($billed - $received, 2));
+            $dueDate = $row['oldest_due_date'] !== null ? (string) $row['oldest_due_date'] : null;
+
+            $report[$groupId]['students'][] = [
+                'student_id'      => (int) $row['student_id'],
+                'student_code'    => (string) $row['student_code'],
+                'student_name'    => (string) $row['student_name'],
+                'school_class'    => (string) $row['school_class'],
+                'invoice_count'   => (int) $row['invoice_count'],
+                'unpaid_count'    => (int) $row['unpaid_count'],
+                'billed_amount'   => $billed,
+                'received_amount' => $received,
+                'debt_amount'     => $debt,
+                'oldest_due_date' => $dueDate,
+            ];
+
+            $report[$groupId]['student_count']++;
+            $report[$groupId]['invoice_count'] += (int) $row['invoice_count'];
+            $report[$groupId]['unpaid_count'] += (int) $row['unpaid_count'];
+            $report[$groupId]['billed_amount'] += $billed;
+            $report[$groupId]['received_amount'] += $received;
+            $report[$groupId]['debt_amount'] += $debt;
+            if ($dueDate !== null) {
+                $current = $report[$groupId]['oldest_due_date'];
+                if ($current === null || $dueDate < $current) {
+                    $report[$groupId]['oldest_due_date'] = $dueDate;
+                }
+            }
+        }
+
+        return array_values($report);
+    }
+
+
+    /**
      * Ringkasan invoice dalam satu periode.
      *
      * @return array<string, int|float>
