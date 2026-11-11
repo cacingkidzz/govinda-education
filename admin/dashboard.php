@@ -30,15 +30,39 @@ $debtorPreview = array_slice($debtors, 0, 6);
 
 $packageStatusLabels = [];
 $packageStatusValues = [];
+$packageStatusColors = [];
+$packageStatusColorMap = [
+    StudentPackage::STATUS_AKTIF      => '#0f766e',
+    StudentPackage::STATUS_SELESAI    => '#2563eb',
+    StudentPackage::STATUS_DIBATALKAN => '#94a3b8',
+];
 foreach (StudentPackage::statusOptions() as $status) {
     $count = (int) ($packageStats[$status] ?? 0);
     if ($count > 0) {
         $packageStatusLabels[] = package_status_label($status);
         $packageStatusValues[] = $count;
+        $packageStatusColors[] = $packageStatusColorMap[$status] ?? '#94a3b8';
     }
 }
 $packageStatusTotal = array_sum($packageStatusValues);
 $revenueChartTotal = array_sum($revenue['totals']);
+
+// Statistik pendukung grafik pembayaran (hanya dari data nyata).
+$revenueMonthCount = max(1, count($revenue['totals']));
+$revenueAverage = $revenueChartTotal / $revenueMonthCount;
+$revenueBestIndex = 0;
+foreach ($revenue['totals'] as $index => $total) {
+    if ((float) $total > (float) $revenue['totals'][$revenueBestIndex]) {
+        $revenueBestIndex = (int) $index;
+    }
+}
+$revenueBestAmount = (float) ($revenue['totals'][$revenueBestIndex] ?? 0);
+$revenueBestLabel = (string) ($revenue['labels'][$revenueBestIndex] ?? '');
+
+// Tren realisasi pertemuan enam bulan terakhir.
+$meetingTrend = Meeting::monthlyStats(6);
+$meetingTrendHasData = $meetingTrend['total_done'] > 0 || $meetingTrend['total_scheduled'] > 0;
+$meetingTrendAverage = $meetingTrend['total_done'] / max(1, count($meetingTrend['done']));
 
 $pageTitle = 'Dashboard';
 $pageSubtitle = 'Ringkasan operasional, paket belajar, dan keuangan ' . Profile::name() . '.';
@@ -236,16 +260,31 @@ require_once ROOT_PATH . '/includes/header.php';
                 </a>
             </div>
             <div class="card-body">
-                <?php if ($revenueChartTotal <= 0): ?>
-                    <div class="empty-state py-4">
-                        <div class="empty-state-icon"><i class="bi bi-bar-chart"></i></div>
-                        <div class="empty-state-title">Belum ada pembayaran</div>
-                        <p class="empty-state-text">
-                            Grafik muncul setelah pembayaran pertama dicatat pada menu Pembayaran.
-                        </p>
+                <div class="chart-box">
+                    <canvas id="revenueChart" role="img"
+                            aria-label="Grafik batang pembayaran diterima per bulan"></canvas>
+                    <?php if ($revenueChartTotal <= 0): ?>
+                        <div class="chart-empty">
+                            <i class="bi bi-bar-chart-line"></i>
+                            <span>
+                                <strong>Belum ada pembayaran</strong>
+                                Grafik terisi otomatis setelah pelunasan pertama dicatat
+                                pada menu Pembayaran.
+                            </span>
+                        </div>
+                    <?php endif; ?>
+                </div>
+                <?php if ($revenueChartTotal > 0): ?>
+                    <div class="chart-stat-row">
+                        <span>
+                            Rata-rata per bulan
+                            <strong><?= e(rupiah($revenueAverage)) ?></strong>
+                        </span>
+                        <span>
+                            Bulan tertinggi
+                            <strong><?= e($revenueBestLabel) ?> &middot; <?= e(rupiah($revenueBestAmount)) ?></strong>
+                        </span>
                     </div>
-                <?php else: ?>
-                    <canvas id="revenueChart" height="200"></canvas>
                 <?php endif; ?>
             </div>
         </div>
@@ -272,20 +311,86 @@ require_once ROOT_PATH . '/includes/header.php';
                         </a>
                     </div>
                 <?php else: ?>
-                    <canvas id="packageChart" height="190"></canvas>
-                    <div class="table-responsive mt-3">
-                        <table class="table table-sm align-middle mb-0">
-                            <tbody>
-                            <?php foreach (StudentPackage::statusOptions() as $status): ?>
-                                <tr>
-                                    <td class="small"><?= package_status_badge($status) ?></td>
-                                    <td class="text-end small fw-semibold">
-                                        <?= e(number_format((int) ($packageStats[$status] ?? 0), 0, ',', '.')) ?>
-                                    </td>
-                                </tr>
-                            <?php endforeach; ?>
-                            </tbody>
-                        </table>
+                    <div class="chart-box chart-box-sm">
+                        <canvas id="packageChart" role="img"
+                                aria-label="Diagram donat komposisi status paket"></canvas>
+                        <div class="doughnut-center">
+                            <span>Total</span>
+                            <strong><?= e(number_format($packageStatusTotal, 0, ',', '.')) ?></strong>
+                            <small>paket</small>
+                        </div>
+                    </div>
+                    <div class="d-flex flex-column gap-2 mt-3">
+                        <?php foreach (StudentPackage::statusOptions() as $status): ?>
+                            <?php
+                            $statusCount = (int) ($packageStats[$status] ?? 0);
+                            $statusPercent = $packageStatusTotal > 0
+                                ? (int) round($statusCount / $packageStatusTotal * 100)
+                                : 0;
+                            ?>
+                            <div class="status-row">
+                                <span class="status-row-label">
+                                    <span class="legend-dot"
+                                          style="background-color: <?= e($packageStatusColorMap[$status] ?? '#94a3b8') ?>;"></span>
+                                    <?= e(package_status_label($status)) ?>
+                                </span>
+                                <span class="status-row-value">
+                                    <?= e(number_format($statusCount, 0, ',', '.')) ?>
+                                    <small><?= e($statusPercent) ?>%</small>
+                                </span>
+                            </div>
+                        <?php endforeach; ?>
+                    </div>
+                <?php endif; ?>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row g-3 mb-4">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <div>
+                    <h2 class="card-title">Realisasi Pertemuan</h2>
+                    <div class="card-subtitle">
+                        Pertemuan terlaksana dan terjadwal per bulan &middot; enam bulan terakhir.
+                    </div>
+                </div>
+                <span class="legend-list">
+                    <span><span class="legend-dot" style="background-color: #0f766e;"></span> Terlaksana</span>
+                    <span><span class="legend-dot" style="background-color: #94a3b8;"></span> Terjadwal</span>
+                </span>
+            </div>
+            <div class="card-body">
+                <div class="chart-box chart-box-xs">
+                    <canvas id="meetingChart" role="img"
+                            aria-label="Grafik garis realisasi pertemuan per bulan"></canvas>
+                    <?php if (!$meetingTrendHasData): ?>
+                        <div class="chart-empty">
+                            <i class="bi bi-calendar-check"></i>
+                            <span>
+                                <strong>Belum ada pertemuan tercatat</strong>
+                                Grafik terisi otomatis setelah jurnal pertemuan diisi
+                                pada detail kelompok.
+                            </span>
+                        </div>
+                    <?php endif; ?>
+                </div>
+                <?php if ($meetingTrendHasData): ?>
+                    <div class="chart-stat-row">
+                        <span>
+                            Terlaksana 6 bulan
+                            <strong><?= e(number_format($meetingTrend['total_done'], 0, ',', '.')) ?> pertemuan</strong>
+                        </span>
+                        <span>
+                            Rata-rata per bulan
+                            <strong><?= e(rtrim(rtrim(number_format($meetingTrendAverage, 1, ',', '.'), '0'), ',')) ?> pertemuan</strong>
+                        </span>
+                        <span>
+                            Terjadwal
+                            <strong><?= e(number_format($meetingTrend['total_scheduled'], 0, ',', '.')) ?> pertemuan</strong>
+                        </span>
                     </div>
                 <?php endif; ?>
             </div>
@@ -510,89 +615,212 @@ require_once ROOT_PATH . '/includes/header.php';
     </div>
 </div>
 
-<?php if ($revenueChartTotal > 0 || $packageStatusTotal > 0): ?>
-    <?php
-    $pageInlineScript = '
+<?php
+$revenueScaleMax = $revenueChartTotal > 0 ? 'null' : '1000000';
+$meetingScaleMax = $meetingTrendHasData ? 'null' : '8';
+$pageInlineScript = '
 (function () {
     "use strict";
+
+    if (typeof Chart === "undefined") {
+        return;
+    }
+
+    Chart.defaults.font.family = getComputedStyle(document.body).fontFamily || "system-ui, sans-serif";
+    Chart.defaults.font.size = 11;
+    Chart.defaults.color = "#8a9aa5";
+    // Gambar langsung tanpa menunggu frame animasi agar grafik selalu tampil
+    // (termasuk saat tab baru dimuat di belakang, dicetak, atau di-screenshot).
+    Chart.defaults.animation = false;
+
+    const rupiahFull = (value) => "Rp" + Number(value).toLocaleString("id-ID");
+    const rupiahShort = (value) => {
+        if (value >= 1000000) return "Rp" + (value / 1000000).toLocaleString("id-ID") + " jt";
+        if (value >= 1000) return "Rp" + (value / 1000).toLocaleString("id-ID") + " rb";
+        return "Rp" + Number(value).toLocaleString("id-ID");
+    };
+    const tooltipStyle = {
+        backgroundColor: "#0b2532",
+        titleColor: "#ffffff",
+        bodyColor: "#dbe7e5",
+        padding: 10,
+        cornerRadius: 8,
+        displayColors: false
+    };
+    const barGradient = (chart) => {
+        if (!chart.chartArea) {
+            return "rgba(15, 118, 110, 0.82)";
+        }
+        const gradient = chart.ctx.createLinearGradient(0, chart.chartArea.top, 0, chart.chartArea.bottom);
+        gradient.addColorStop(0, "#17a396");
+        gradient.addColorStop(1, "#0f766e");
+        return gradient;
+    };
+
     const revenueEl = document.getElementById("revenueChart");
-    if (revenueEl && typeof Chart !== "undefined") {
+    if (revenueEl) {
         new Chart(revenueEl, {
             type: "bar",
             data: {
                 labels: ' . js_json($revenue['labels']) . ',
                 datasets: [{
-                    label: "Pembayaran Diterima",
+                    label: "Uang Diterima",
                     data: ' . js_json($revenue['totals']) . ',
-                    backgroundColor: "rgba(15, 118, 110, 0.8)",
-                    hoverBackgroundColor: "rgba(15, 118, 110, 1)",
-                    borderRadius: 6,
-                    maxBarThickness: 30
+                    backgroundColor: (context) => barGradient(context.chart),
+                    hoverBackgroundColor: "#f2c14e",
+                    borderRadius: 7,
+                    borderSkipped: false,
+                    maxBarThickness: 38,
+                    barPercentage: 0.66,
+                    categoryPercentage: 0.72
                 }]
             },
             options: {
                 responsive: true,
                 maintainAspectRatio: false,
+                interaction: { mode: "index", intersect: false },
                 plugins: {
                     legend: { display: false },
-                    tooltip: {
+                    tooltip: Object.assign({}, tooltipStyle, {
                         callbacks: {
-                            label: function (context) {
-                                return "Rp" + Number(context.parsed.y).toLocaleString("id-ID");
+                            label: (context) => {
+                                const count = ' . js_json($revenue['counts']) . '[context.dataIndex] || 0;
+                                return rupiahFull(context.parsed.y) + " \u00b7 " + count + " pelunasan";
                             }
                         }
-                    }
+                    })
                 },
                 scales: {
                     y: {
                         beginAtZero: true,
-                        grid: { color: "rgba(227, 233, 231, 0.85)" },
-                        ticks: {
-                            callback: function (value) {
-                                if (value >= 1000000) return "Rp" + (value / 1000000).toLocaleString("id-ID") + " jt";
-                                if (value >= 1000) return "Rp" + (value / 1000).toLocaleString("id-ID") + " rb";
-                                return "Rp" + value;
-                            }
-                        }
+                        suggestedMax: ' . $revenueScaleMax . ',
+                        grid: { color: "#eef3f2", drawTicks: false },
+                        border: { display: false },
+                        ticks: { callback: rupiahShort, maxTicksLimit: 5, padding: 8 }
                     },
-                    x: { grid: { display: false } }
+                    x: {
+                        grid: { display: false },
+                        border: { display: false },
+                        ticks: { padding: 6 }
+                    }
                 }
             }
         });
     }
 
     const packageEl = document.getElementById("packageChart");
-    if (packageEl && typeof Chart !== "undefined") {
+    if (packageEl) {
         new Chart(packageEl, {
             type: "doughnut",
             data: {
                 labels: ' . js_json($packageStatusLabels) . ',
                 datasets: [{
                     data: ' . js_json($packageStatusValues) . ',
-                    backgroundColor: ["#0f766e", "#2563eb", "#f59e0b", "#94a3b8", "#be123c"],
-                    borderWidth: 2,
-                    borderColor: "#fff"
+                    backgroundColor: ' . js_json($packageStatusColors) . ',
+                    borderColor: "#ffffff",
+                    borderWidth: 3,
+                    hoverOffset: 8
                 }]
             },
             options: {
                 responsive: true,
                 maintainAspectRatio: false,
-                cutout: "62%",
+                cutout: "70%",
                 plugins: {
                     legend: { display: false },
-                    tooltip: {
+                    tooltip: Object.assign({}, tooltipStyle, {
                         callbacks: {
-                            label: function (context) {
-                                return context.label + ": " + context.parsed + " paket";
+                            label: (context) => {
+                                const total = context.dataset.data.reduce((a, b) => a + b, 0) || 1;
+                                const percent = Math.round((context.parsed / total) * 100);
+                                return context.label + ": " + context.parsed + " paket (" + percent + "%)";
                             }
                         }
+                    })
+                }
+            }
+        });
+    }
+
+    const meetingEl = document.getElementById("meetingChart");
+    if (meetingEl) {
+        const areaGradient = (chart) => {
+            if (!chart.chartArea) {
+                return "rgba(15, 118, 110, 0.15)";
+            }
+            const gradient = chart.ctx.createLinearGradient(0, chart.chartArea.top, 0, chart.chartArea.bottom);
+            gradient.addColorStop(0, "rgba(20, 122, 112, 0.22)");
+            gradient.addColorStop(1, "rgba(20, 122, 112, 0.01)");
+            return gradient;
+        };
+
+        new Chart(meetingEl, {
+            type: "line",
+            data: {
+                labels: ' . js_json($meetingTrend['labels']) . ',
+                datasets: [
+                    {
+                        label: "Terlaksana",
+                        data: ' . js_json($meetingTrend['done']) . ',
+                        borderColor: "#0f766e",
+                        backgroundColor: (context) => areaGradient(context.chart),
+                        fill: true,
+                        tension: 0.35,
+                        borderWidth: 2.5,
+                        pointRadius: 3.5,
+                        pointBackgroundColor: "#ffffff",
+                        pointBorderColor: "#0f766e",
+                        pointBorderWidth: 2,
+                        pointHoverRadius: 5,
+                        pointHoverBackgroundColor: "#0f766e",
+                        pointHoverBorderColor: "#ffffff"
+                    },
+                    {
+                        label: "Terjadwal",
+                        data: ' . js_json($meetingTrend['scheduled']) . ',
+                        borderColor: "#94a3b8",
+                        borderDash: [5, 4],
+                        borderWidth: 2,
+                        fill: false,
+                        tension: 0.35,
+                        pointRadius: 2.5,
+                        pointBackgroundColor: "#ffffff",
+                        pointBorderColor: "#94a3b8",
+                        pointBorderWidth: 2
+                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                interaction: { mode: "index", intersect: false },
+                plugins: {
+                    legend: { display: false },
+                    tooltip: Object.assign({}, tooltipStyle, {
+                        callbacks: {
+                            label: (context) => context.dataset.label + ": " + context.parsed.y + " pertemuan"
+                        }
+                    })
+                },
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        suggestedMax: ' . $meetingScaleMax . ',
+                        grid: { color: "#eef3f2", drawTicks: false },
+                        border: { display: false },
+                        ticks: { precision: 0, maxTicksLimit: 5, padding: 8 }
+                    },
+                    x: {
+                        grid: { display: false },
+                        border: { display: false },
+                        ticks: { padding: 6 }
                     }
                 }
             }
         });
     }
 })();';
-    ?>
-<?php endif; ?>
+?>
+
 
 <?php require_once ROOT_PATH . '/includes/footer.php'; ?>

@@ -909,6 +909,66 @@ final class Meeting
         return $result;
     }
 
+    /**
+     * Realisasi pertemuan per bulan untuk grafik dashboard.
+     *
+     * @return array{
+     *     labels: array<int, string>,
+     *     done: array<int, int>,
+     *     scheduled: array<int, int>,
+     *     total_done: int,
+     *     total_scheduled: int
+     * }
+     */
+    public static function monthlyStats(int $months = 6): array
+    {
+        $months = max(1, min(24, $months));
+        $start = (new DateTimeImmutable('first day of this month'))->modify('-' . ($months - 1) . ' months');
+        $end = new DateTimeImmutable('last day of this month');
+
+        $stmt = db()->prepare(
+            "SELECT DATE_FORMAT(meeting_date, '%Y-%m') AS ym, status, COUNT(*) AS total
+             FROM class_meetings
+             WHERE meeting_date BETWEEN :start_date AND :end_date
+             GROUP BY ym, status"
+        );
+        $stmt->execute([
+            ':start_date' => $start->format('Y-m-d'),
+            ':end_date'   => $end->format('Y-m-d'),
+        ]);
+
+        $map = [];
+        foreach ($stmt->fetchAll() as $row) {
+            $map[(string) $row['ym']][(string) $row['status']] = (int) $row['total'];
+        }
+
+        $labels = [];
+        $done = [];
+        $scheduled = [];
+        $totalDone = 0;
+        $totalScheduled = 0;
+        $cursor = $start;
+        for ($i = 0; $i < $months; $i++) {
+            $key = $cursor->format('Y-m');
+            $labels[] = bulan_singkat_id((int) $cursor->format('n')) . ' ' . $cursor->format('Y');
+            $monthDone = (int) ($map[$key][self::STATUS_DONE] ?? 0);
+            $monthScheduled = (int) ($map[$key][self::STATUS_SCHEDULED] ?? 0);
+            $done[] = $monthDone;
+            $scheduled[] = $monthScheduled;
+            $totalDone += $monthDone;
+            $totalScheduled += $monthScheduled;
+            $cursor = $cursor->modify('+1 month');
+        }
+
+        return [
+            'labels'         => $labels,
+            'done'           => $done,
+            'scheduled'      => $scheduled,
+            'total_done'     => $totalDone,
+            'total_scheduled' => $totalScheduled,
+        ];
+    }
+
     public const STATUS_LABELS = [
         self::STATUS_SCHEDULED   => 'Terjadwal',
         self::STATUS_DONE        => 'Terlaksana',
