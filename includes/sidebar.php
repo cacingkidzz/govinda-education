@@ -21,7 +21,7 @@ $activeMenu = $activeMenu ?? '';
     <div class="sidebar-wrapper">
         <nav class="mt-3" aria-label="Navigasi utama">
             <div class="sidebar-section-label">Menu Utama</div>
-            <ul class="nav sidebar-menu flex-column" data-lte-toggle="treeview" data-accordion="false">
+            <ul class="nav sidebar-menu flex-column" role="list" data-lte-toggle="treeview" data-accordion="false">
                 <li class="nav-item">
                     <a href="<?= e(url('admin/dashboard.php')) ?>"
                        class="nav-link <?= $activeMenu === 'dashboard' ? 'active' : '' ?>">
@@ -32,7 +32,7 @@ $activeMenu = $activeMenu ?? '';
             </ul>
 
             <div class="sidebar-section-label mt-3">Master Data</div>
-            <ul class="nav sidebar-menu flex-column" data-lte-toggle="treeview" data-accordion="false">
+            <ul class="nav sidebar-menu flex-column" role="list" data-lte-toggle="treeview" data-accordion="false">
                 <li class="nav-item">
                     <a href="<?= e(url('admin/siswa/index.php')) ?>"
                        class="nav-link <?= $activeMenu === 'siswa' ? 'active' : '' ?>">
@@ -64,7 +64,7 @@ $activeMenu = $activeMenu ?? '';
             </ul>
 
             <div class="sidebar-section-label mt-3">Akademik</div>
-            <ul class="nav sidebar-menu flex-column" data-lte-toggle="treeview" data-accordion="false">
+            <ul class="nav sidebar-menu flex-column" role="list" data-lte-toggle="treeview" data-accordion="false">
                 <li class="nav-item">
                     <a href="<?= e(url('admin/group/index.php')) ?>"
                        class="nav-link <?= $activeMenu === 'group' ? 'active' : '' ?>">
@@ -110,7 +110,7 @@ $activeMenu = $activeMenu ?? '';
             </ul>
 
             <div class="sidebar-section-label mt-3">Keuangan</div>
-            <ul class="nav sidebar-menu flex-column" data-lte-toggle="treeview" data-accordion="false">
+            <ul class="nav sidebar-menu flex-column" role="list" data-lte-toggle="treeview" data-accordion="false">
                 <li class="nav-item">
                     <a href="<?= e(url('admin/tarif/index.php')) ?>"
                        class="nav-link <?= $activeMenu === 'tarif' ? 'active' : '' ?>">
@@ -149,7 +149,7 @@ $activeMenu = $activeMenu ?? '';
             </ul>
 
             <div class="sidebar-section-label mt-3">Laporan</div>
-            <ul class="nav sidebar-menu flex-column" data-lte-toggle="treeview" data-accordion="false">
+            <ul class="nav sidebar-menu flex-column" role="list" data-lte-toggle="treeview" data-accordion="false">
                 <li class="nav-item">
                     <a href="<?= e(url('admin/laporan/keuangan.php')) ?>"
                        class="nav-link <?= $activeMenu === 'laporan-keuangan' ? 'active' : '' ?>">
@@ -203,7 +203,7 @@ $activeMenu = $activeMenu ?? '';
 
             <?php if ($sidebarUser !== null && $sidebarUser['role'] === 'admin'): ?>
                 <div class="sidebar-section-label mt-3">Sistem</div>
-                <ul class="nav sidebar-menu flex-column" data-lte-toggle="treeview" data-accordion="false">
+                <ul class="nav sidebar-menu flex-column" role="list" data-lte-toggle="treeview" data-accordion="false">
                     <li class="nav-item">
                         <a href="<?= e(url('admin/pengguna/index.php')) ?>"
                            class="nav-link <?= $activeMenu === 'pengguna' ? 'active' : '' ?>">

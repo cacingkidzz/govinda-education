@@ -23,6 +23,15 @@ $flashes = pull_flashes();
     <meta name="color-scheme" content="light">
     <meta name="theme-color" content="#0f766e">
     <meta name="robots" content="noindex, nofollow">
+    <?php
+    $metaDescription = trim((string) preg_replace('/\s+/u', ' ', Profile::description()));
+    if ($metaDescription === '') {
+        $metaDescription = Profile::name()
+            . (Profile::tagline() !== '' ? ' — ' . Profile::tagline() : ' — Sistem manajemen bimbingan belajar');
+    }
+    $metaDescription = mb_substr($metaDescription, 0, 160);
+    ?>
+    <meta name="description" content="<?= e($metaDescription) ?>">
     <title><?= e($pageTitle) ?> — <?= e(Profile::name()) ?></title>
     <link rel="icon" type="image/svg+xml" href="<?= e(url('assets/img/favicon.svg')) ?>">
 

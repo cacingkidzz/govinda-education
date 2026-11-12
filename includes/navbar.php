@@ -9,7 +9,7 @@ $roleClass = $currentUser['role'] === 'admin' ? 'role-admin' : 'role-petugas';
 ?>
 <nav class="app-header navbar navbar-expand bg-white">
     <div class="container-fluid">
-        <ul class="navbar-nav">
+        <ul class="navbar-nav" role="list">
             <li class="nav-item">
                 <a class="nav-link nav-toggle-sidebar" data-lte-toggle="sidebar" href="#" role="button"
                    aria-label="Buka atau tutup sidebar">
@@ -26,7 +26,7 @@ $roleClass = $currentUser['role'] === 'admin' ? 'role-admin' : 'role-petugas';
             <?php endif; ?>
         </ul>
 
-        <ul class="navbar-nav ms-auto align-items-center gap-1">
+        <ul class="navbar-nav ms-auto align-items-center gap-1" role="list">
             <li class="nav-item d-none d-lg-block">
                 <span class="navbar-date">
                     <i class="bi bi-calendar3 me-2"></i><?= e(tanggal_id(date('Y-m-d'), true)) ?>
